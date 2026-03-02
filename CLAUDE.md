@@ -65,7 +65,7 @@ The repository uses two workspace systems:
 - **Cargo workspace** (root `Cargo.toml`) — manages all Rust crates
 
 ```bash
-repo-edu/
+repo-edu-tauri/
 ├── Cargo.toml              # Rust workspace root
 ├── Cargo.lock              # Shared lock file for all Rust crates
 ├── package.json            # pnpm scripts (delegates to workspaces)
