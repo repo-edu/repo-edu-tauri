@@ -11,3 +11,4 @@ Read the following plan files and evaluate the plan in folder plan:
   plan.architecture.md
   plan.migration-scope.md
   plan.delivery.md
+  plan.test-migration.md
