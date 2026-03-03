@@ -4,9 +4,20 @@ This file is the canonical executive summary for the migration. Detailed
 specifications live in:
 
 - [Architecture specification](./plan.architecture.md)
-- [Migration scope mapping](./plan.migration-scope.md)
 - [Delivery phases and testing](./plan.delivery.md)
+- [Implementation checklist](./plan.implementation-checklist.md)
 - [Test migration policy](./plan.test-migration.md)
+- [Library replacement matrix](./plan.library-replacement-matrix.md)
+- [Retained contract inventory](./plan.retained-contract-inventory.md)
+- [Workflow mapping inventory](./plan.workflow-mapping.md)
+- [Test triage inventory](./plan.test-triage-inventory.md)
+- [Legacy test migration map](./plan.legacy-test-migration-map.md)
+
+For actual implementation sequencing, interruption-safe resumption, and
+task-by-task execution tracking, use
+[plan.implementation-checklist.md](./plan.implementation-checklist.md) as the
+canonical execution ledger. The other plan documents define scope, architecture,
+and policy; the checklist defines the work order.
 
 ## Objective
 
@@ -23,8 +34,8 @@ ignored. The target architecture should optimize for:
 - zero generated backend bindings
 - zero Rust in the new project
 - zero settings migration logic
-- compiler-enforced IPC type safety via tRPC plus a shared compile-time
-  workflow definition map with exhaustive per-process bindings
+- compiler-enforced IPC type safety via tRPC plus a shared compile-time workflow
+  definition map with exhaustive per-process bindings
 
 ## Hard Requirements
 
@@ -32,9 +43,17 @@ ignored. The target architecture should optimize for:
   explicit.
 - Do not preserve known defects or incidental implementation quirks only for
   migration symmetry.
-- Create and maintain a canonical behavior-preservation checklist before feature
-  implementation begins.
+- Maintain explicit automated test coverage for retained user-visible contracts
+  throughout implementation, and defer user-based acceptance testing until the
+  rewrite is fully complete.
 - Replace the complete Rust backend with TypeScript.
+- Apply a library-first migration policy for infrastructure and adapter
+  concerns: before rewriting any Rust module by hand, evaluate whether a mature
+  TypeScript library can replace the protocol, file-format, transport, or CLI
+  plumbing with lower long-term maintenance burden.
+- Keep product-specific domain behavior hand-authored in shared TypeScript
+  packages; do not outsource roster semantics, group-set semantics, assignment
+  validation, or repository planning to generic libraries.
 - Replace the Rust CLI with a TypeScript CLI.
 - Remove all generated backend bindings and the schema-to-bindings pipeline.
 - Keep the desktop host limited to host concerns: direct host capabilities plus
@@ -91,22 +110,51 @@ tRPC client. Both the main-side router bindings and the renderer-side adapter
 bindings are derived independently from the same shared workflow definition map
 in `packages/application-contract`; no single runtime registration object spans
 both processes. This keeps IPC typing compiler-enforced via tRPC while keeping
-the UI invocation surface explicit and browser-safe. Business rules,
-validation, profile logic, diffing, LMS behavior, and repository planning
-belong in shared TypeScript packages reused across desktop, CLI, tests, and
-docs.
+the UI invocation surface explicit and browser-safe. Business rules, validation,
+profile logic, diffing, LMS behavior, and repository planning belong in shared
+TypeScript packages reused across desktop, CLI, tests, and docs.
 
 Third-party HTTP is the main exception to renderer-local execution: external API
 calls must run in Node-owned adapters behind explicit ports so the desktop app
 is not blocked by browser CORS constraints.
 
+## Library-First Migration Policy
+
+The migration is not "translate all Rust into equivalent TypeScript modules". It
+is:
+
+1. Replace low-value infrastructure code with mature TypeScript libraries where
+   the library owns protocol and transport details.
+2. Rewrite product-specific business rules as explicit shared TypeScript
+   modules.
+3. Delete legacy generated bindings and command transport layers rather than
+   recreating them.
+
+This policy applies especially to:
+
+- Git provider API clients
+- CSV/XLSX file parsing and serialization
+- CLI command parsing
+- IPC transport typing
+- boundary validation of untrusted files and payloads
+
+This policy does not apply to:
+
+- roster normalization
+- system group set generation
+- group-set import/reimport semantics
+- assignment validation and selection rules
+- repository planning and collision handling
+- progress semantics and workflow orchestration
+
 ## Explicit Non-Goals
 
 - No bug-for-bug parity with the existing Tauri/Rust implementation.
 - No legacy settings migration.
-- No secure credential storage hardening in this migration plan; retaining
-  plain-text credential storage in the new app preserves the current shipped
-  behavior and is not a regression.
+- No secure credential storage hardening in this migration plan; the
+  architecture should still leave a credential-storage seam in place, and the
+  initial implementation should continue to use plain-text credential storage
+  because that preserves the current shipped behavior and is not a regression.
 - Secure credential storage is deferred to a later hardening plan once the
   TypeScript architecture is stable.
 - No attempt to preserve Rust module structure.
@@ -123,20 +171,34 @@ is not blocked by browser CORS constraints.
 - CORS is an architectural constraint, not an implementation detail. If external
   HTTP is allowed to leak into the renderer, the desktop app will fail against
   real LMS and Git provider APIs.
-- `simple-git` still depends on the system Git CLI. The new Node implementation
-  must explicitly handle missing Git installations, version expectations, and
-  platform-specific process behavior.
+- Rewriting mature infrastructure concerns by hand in TypeScript would recreate
+  the current maintenance burden in a new language. The migration must
+  aggressively replace low-value protocol and file-format code with maintained
+  libraries where those libraries are strong.
+- Git execution should not sit behind an ambiguous `simple-git` convenience
+  layer. The plan commits to one explicit adapter over the system Git CLI using
+  `child_process.spawn`, and that adapter must explicitly handle missing Git
+  installations, version expectations, and platform-specific process behavior.
+- Future in-app `gitinspectorgui` integration will require substantially richer
+  local Git inspection capabilities than the current repo workflows, including
+  follow-aware history and blame queries such as `git log --follow` and `git
+  blame --follow`. The chosen Git boundary must be broad enough to absorb that
+  later expansion without introducing a second local Git execution stack.
 - Electron packaging increases binary size and startup overhead compared with a
   browser-only or CLI target. Packaging and startup budgets should be measured
   early so the app does not accumulate avoidable platform weight.
+- Desktop distribution is more than choosing a packager. Code signing, macOS
+  notarization, per-platform installer formats, updater feed topology, release
+  channels, and the decision to support or defer delta updates will still need
+  explicit follow-up decisions later, but they are intentionally out of scope
+  for this migration.
 - IPC type safety depends on the shared workflow definition map in
   `packages/application-contract` remaining the compile-time source of truth,
   and on both the main-side router bindings and the desktop `WorkflowClient`
-  adapter staying thin 1:1 projections of that map. If any IPC path bypasses
-  the router (raw `ipcRenderer.invoke`, ad hoc channels), contract drift
-  reappears. The desktop shell must enforce that all desktop
-  `packages/application` use-case dispatch goes through the tRPC router with no
-  exceptions.
+  adapter staying thin 1:1 projections of that map. If any IPC path bypasses the
+  router (raw `ipcRenderer.invoke`, ad hoc channels), contract drift reappears.
+  The desktop shell must enforce that all desktop `packages/application`
+  use-case dispatch goes through the tRPC router with no exceptions.
 
 ## Success Criteria
 
@@ -150,3 +212,6 @@ The migration is successful when all of the following are true:
 5. There is no Rust, no Tauri, and no generated backend bindings.
 6. The shared business logic is reusable across desktop, CLI, and docs without
    duplication.
+7. The desktop shell is locally runnable as an Electron app with the intended
+   retained functionality, while release/distribution concerns remain explicitly
+   deferred.
