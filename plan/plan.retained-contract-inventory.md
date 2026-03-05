@@ -44,7 +44,7 @@ Confidence meanings:
 | Assignment editing and selection rules | Users can create/delete assignments, attach them to group sets, and preview group-selection results from `all` or pattern-based selection. | Desktop UI, docs demo | `high` | `packages/app-core/src/stores/__tests__/actions.test.ts`, `packages/app-core/src/stores/__tests__/selectors.test.ts`, `packages/app-core/src/components/dialogs/NewAssignmentDialog.tsx`, `apps/repo-manage/schemas/commands/manifest.json` | Retain; keep local deterministic selection logic in shared domain/app code. |
 | Group naming and pattern filtering | The app normalizes group names, validates patterns, and previews matches before users create or filter groups. | Desktop UI, docs demo | `high` | `packages/app-core/src/components/dialogs/AddGroupDialog.tsx`, `packages/app-core/src/components/dialogs/NewLocalGroupSetDialog.tsx`, `packages/app-core/src/utils/__tests__/groupNaming.test.ts`, `apps/repo-manage/schemas/commands/manifest.json` | Retain as explicit shared domain behavior with boundary validation where needed. |
 | Git usernames and validation | Users can import Git usernames, verify username coverage, run roster validation, and run assignment validation that feeds issue reporting. | Desktop UI, CLI, docs demo | `medium` | `packages/app-core/src/components/dialogs/ImportGitUsernamesDialog.tsx`, `packages/app-core/src/components/dialogs/UsernameVerificationDialog.tsx`, `packages/app-core/src/stores/profileStore.ts`, `packages/app-core/src/utils/__tests__/issues.test.ts`, `apps/repo-manage/cli/src/main.rs` | Retain as shared validation and import workflows. |
-| Repository operations (Operations tab) | Users can choose an assignment and run repository create/clone/delete operations; code also defines preflight concepts, status, and results. | Desktop UI, CLI, docs demo | `low` | `packages/app-core/src/components/tabs/OperationTab.tsx`, `packages/app-core/src/components/dialogs/PreflightDialog.tsx`, `packages/app-core/src/stores/operationStore.ts`, `apps/repo-manage/cli/src/main.rs`, `apps/repo-manage/schemas/commands/manifest.json` | Retain the high-level create/clone/delete capability. Treat preflight dialog behavior and fine-grained operation semantics as code-derived and require an explicit code-derived scope review plus contract freeze before implementation turns them into hard contracts. |
+| Repository operations (Operations tab) | Users can choose an assignment and run repository create/clone/delete operations; code also defines preflight concepts, status, and results. | Desktop UI, CLI, docs demo | `low` | `packages/app-core/src/components/tabs/OperationTab.tsx`, `packages/app-core/src/components/dialogs/PreflightDialog.tsx`, `packages/app-core/src/stores/operationStore.ts`, `apps/repo-manage/cli/src/main.rs`, `apps/repo-manage/schemas/commands/manifest.json` | Retain the high-level create/clone/delete capability. The phase-2 scope review is now complete: preserve batch operation intent plus aggregate user-visible outcomes, but do not promote the current preflight dialog shape, exact status cadence, or incidental implementation details into hard retained contracts. |
 | CLI command surface | The target CLI should retain the major command families (`profile`, `roster`, `lms`, `lms cache`, `git`, `repo`, `validate`) as the intended capability model. The current implementation is only a partial, lightly validated planning input and should not freeze exact subcommand parity. | CLI | `low` | `apps/repo-manage/cli/src/main.rs`, `apps/repo-manage/cli/tests/integration_tests.rs` (mostly command-tree/help coverage) | Retain the command families and core user-visible intent, but treat the current command tree as incomplete and review-gated rather than as a strict compatibility contract. |
 | Docs standalone demo | The docs site mounts the real app against a mock backend and should continue to exercise the same major UI flows without a desktop shell. | Docs demo | `medium` | `docs/src/components/DemoApp.tsx`, `docs/src/pages/demo-standalone.astro`, `packages/backend-mock/src/index.ts` | Retain as a first-class delivery target. |
 
@@ -62,12 +62,13 @@ Reason:
 - the code shows the capability surface, but not all of its semantics are
   clearly validated by tests
 
-Rule for migration planning:
+Rule for migration planning after the completed phase-2 review:
 
 - retain the existence of repository create/clone/delete workflows
-- do not assume every current preflight, collision, status, or UX detail is a
-  must-preserve contract unless it is explicitly reviewed through a code-derived
-  scope pass and then promoted
+- retain assignment/profile-scoped batch intent and aggregate user-visible
+  outcomes
+- do not treat the current preflight dialog shape, exact status cadence, or
+  incidental per-item messaging as must-preserve contracts
 
 ### CLI command surface
 

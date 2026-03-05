@@ -66,9 +66,9 @@ It is intentionally a planning map, not a generated API:
 | `gitUsernames.verify` | Verify Git username status | `verify_git_usernames` | desktop, docs | `medium` | Shared validation workflow. |
 | `validation.roster` | Validate roster-level issues | `validate_roster` | desktop, docs | `medium` | Keep as explicit validation workflow. |
 | `validation.assignment` | Validate assignment readiness | `validate_assignment`, CLI `validate` | desktop, docs, CLI | `medium` | Shared validation workflow with CLI surface. |
-| `repo.create` | Create repositories | `create_repos`, CLI `repo create` | desktop, docs, CLI | `low` | Preserve capability; detailed semantics remain gated by a phase-2 code-derived scope review that freezes retained behavior before implementation. Any preflight UX remains an explicit review item and is not promoted into a shared workflow id at phase 2. |
-| `repo.clone` | Clone repositories | `clone_repos_from_roster`, CLI `repo clone` | desktop, docs, CLI | `low` | Preserve capability; detailed semantics remain gated by a phase-2 code-derived scope review that freezes retained behavior before implementation. |
-| `repo.delete` | Delete repositories | `delete_repos`, CLI `repo delete` | desktop, docs, CLI | `low` | Preserve capability; detailed semantics remain gated by a phase-2 code-derived scope review that freezes retained behavior before implementation. |
+| `repo.create` | Create repositories | `create_repos`, CLI `repo create` | desktop, docs, CLI | `low` | Preserve the batch-create capability. The explicit phase-2 scope review below freezes the retained contract at assignment/profile-scoped batch creation plus aggregate user-visible results; preflight UX remains delivery-specific. |
+| `repo.clone` | Clone repositories | `clone_repos_from_roster`, CLI `repo clone` | desktop, docs, CLI | `low` | Preserve the batch-clone capability. The explicit phase-2 scope review below freezes the retained contract at assignment/profile-scoped clone intent plus aggregate user-visible results; incidental status cadence and implementation details are not retained contracts. |
+| `repo.delete` | Delete repositories | `delete_repos`, CLI `repo delete` | desktop, docs, CLI | `low` | Preserve the batch-delete capability. The explicit phase-2 scope review below freezes the retained contract at destructive batch deletion plus explicit caller-owned confirmation; current preflight UI details and progress wording are not retained contracts. |
 
 ## Local-Only Behaviors Intentionally Outside This Map
 
@@ -86,3 +86,42 @@ not application workflows by default:
 
 If any of these later acquire host-side side effects, they should be promoted
 into explicit workflows at that time.
+
+## Phase 2 Repository Workflow Scope Review
+
+This section closes the explicit phase-2 review gate for the low-confidence
+repository workflows.
+
+### Retained shared contracts
+
+- `repo.create`, `repo.clone`, and `repo.delete` remain first-class shared
+  workflows because they cross host/runtime boundaries and are user-visible
+  operations.
+- Each workflow retains the high-level batch intent scoped by the selected
+  profile and, where applicable, the selected assignment or repository set.
+- Each workflow retains aggregate user-visible completion results and
+  diagnostic-output semantics as shared workflow concerns.
+
+### Intentionally not retained as shared contracts
+
+- The current desktop preflight dialog shape is not a retained shared contract.
+  Review/confirm UX may exist, but it is owned by the delivery surface.
+- Exact in-flight status cadence, incidental per-item log wording, and current
+  store-specific intermediate states are not frozen as retained contracts.
+- Current implementation-shaped planning internals, host task breakdown, and
+  transport-specific status plumbing are not preserved requirements.
+
+### Workflow-specific freeze
+
+1. `repo.create` Retain template-backed batch repository creation plus aggregate
+   success or failure outcomes. Preserve the need for application-owned
+   collision and input validation before host execution, but do not freeze the
+   current preflight dialog or every intermediate status detail.
+2. `repo.clone` Retain assignment/profile-scoped batch clone intent and
+   aggregate outcomes. Do not freeze exact filesystem staging behavior, progress
+   percentages, or per-repository log wording unless later promoted as explicit
+   retained semantics.
+3. `repo.delete` Retain destructive batch delete intent with explicit
+   confirmation handled by the invoking surface. Do not freeze the current
+   preflight UI shape, exact warning copy, or transient progress states as
+   shared workflow requirements.

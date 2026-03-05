@@ -49,6 +49,19 @@ tests instead of being deferred:
 - docs standalone demo smoke coverage
 - end-to-end desktop coverage for at least one core workflow path
 
+## Phase 2 Gate Status
+
+This inventory now satisfies the phase-2 planning requirement that every major
+legacy test area has an explicit migration destination in the new architecture.
+
+- High-confidence areas are already mapped to `packages/domain`,
+  `packages/application`, and `packages/app` as appropriate.
+- Host-crossing concerns are explicitly assigned to `host-node`,
+  integration-adapter tests, Electron E2E, CLI output tests, or docs smoke
+  coverage where they belong.
+- Repository operations remain low-confidence, but their target layers are now
+  explicit instead of deferred.
+
 ## Confidence Note
 
 `Roster` and `Group sets & Assignments` are the strongest areas to derive from
